@@ -11,17 +11,17 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-# 시작 화면 - 시작 버튼, 카드 뒷면
+# 시작 화면 - 시작 버튼
 def first_screen():
     pygame.draw.rect(screen, WHITE, start)
     msg = game_font.render("START", True, BLACK)
     msg_rect = msg.get_rect(center=(640, 670))
     screen.blit(msg, msg_rect)
-    card_setting()
 
+# 카드에 번호를 지정하는 함수
 def card_setting():
     screen_x_margin = 30
-    screen_y_margin = 30
+    screen_y_margin = 30    
     card_width = 190
     card_height = 200
     card_x_margin = 16
@@ -43,17 +43,28 @@ def card_setting():
 
             card = pygame.Rect(0,0,card_width, card_height)
             card.center = (center_x, center_y)
-
+            
             cards.append([card, num])
+            print(cards)
 
     for i in cards:
         pygame.draw.rect(screen, GREEN, i[0])
 
 # 게임 화면 - 카드 앞면을 잠시 공개 후 뒷면으로 세팅
 def play_screen():
-    show_card()
+    global running
+    show_cards()
+    comp_card()
+    if (len(cards))==0:
+        screen.fill(BLACK)
+        msg = game_font1.render("Game Clear", True, WHITE)
+        msg_rect = msg.get_rect(center=(640, 360))
+        screen.blit(msg, msg_rect)
+        running = False
 
-def show_card():
+# 전체 카드 앞면을 보여주는 함수
+def show_cards():
+    global hidden
     elapsed_time = (pygame.time.get_ticks() - start_ticks) / 1000
     if elapsed_time < total_time:
         for i in cards:
@@ -66,6 +77,7 @@ def show_card():
             timer_rect = timer.get_rect(center=(640,670))
             screen.blit(timer, timer_rect)
     else:
+        hidden = True
         for i in cards:
             pygame.draw.rect(screen, GREEN, i[0])
 
@@ -73,10 +85,36 @@ def show_card():
 def update_screen(click_pos):
     global game_play, start_ticks
     if game_play:
-        pass
+        check_card(click_pos)
     elif start.collidepoint(click_pos):
-        game_play=True
         start_ticks = pygame.time.get_ticks()
+        card_setting()
+        game_play = True
+
+# 클릭한 카드를 comp_cards 리스트로 이동
+def check_card(click_pos):
+    if hidden:
+        for idx, i in enumerate(cards):
+            if i[0].collidepoint(click_pos):
+                del cards[idx]
+                comp_cards.append(i)
+
+# 클릭한 카드의 앞면을 보여주고 클릭한 카드들끼리 비교하는 함수
+def comp_card():
+    for i in comp_cards:
+        pygame.draw.rect(screen, GREEN, i[0])
+        msg = game_font1.render(f"{i[1]}", True, BLACK)
+        msg_rect = msg.get_rect(center=i[0].center)
+        screen.blit(msg, msg_rect)
+    if len(comp_cards) == 2:
+        if comp_cards[0][1] == comp_cards[1][1]:
+            del comp_cards[1]
+            del comp_cards[0]
+        else:
+            cards.append(comp_cards[0])
+            cards.append(comp_cards[1])
+            del comp_cards[1]
+            del comp_cards[0]
 
 pygame.init()
 screen_width = 1280
@@ -92,8 +130,10 @@ GREEN = (0, 255, 0)
 game_play = False
 start = pygame.Rect(570, 640, 140, 60)
 cards = []
+comp_cards = []
 start_ticks = None
-total_time = 5
+total_time = 10
+hidden = False
 
 running = True
 while running:
@@ -117,5 +157,6 @@ while running:
         update_screen(click_pos)
 
     pygame.display.update()
+pygame.time.delay(2000)
 
 pygame.quit()
